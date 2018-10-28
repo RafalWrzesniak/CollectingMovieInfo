@@ -149,10 +149,6 @@ def SzukanieInternet(movie_title):
         kraj = []
         rezyser = []
 
-        def __init__(self):
-            # Moving to the movie URL
-            a = 1
-
         # Getting movie data
         def tytul(self):
             tytul = [respData[respData.index('<title>') + len('<title>'):
