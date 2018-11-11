@@ -32,6 +32,9 @@ def SzukaniePoFolderach():
 
 def SzukanieInternet(movie_title):
 
+    global movieDict
+    movieDict = {}
+
     def URLChanging(link):
         global passit
         passit = True
@@ -53,8 +56,10 @@ def SzukanieInternet(movie_title):
                 respData = respData.replace('%C5%84', 'ń')
             if 'u0142' in respData:
                 respData = respData.replace('u0142', 'ł')
-        except Exception:
+        except Exception as e:
             print(red, 'Błąd podczas dekodowania nazwy filmu: ', end, movie_title)
+            print("Całość: " + str(round(time.time() - start, 2)) + " [s]")
+            print(200 * '+' + '\n')
             passit = False
 
     class FilmKlasa:
@@ -207,7 +212,7 @@ def SzukanieInternet(movie_title):
                 corelation1 = round((corelation1 / (len(respDataReduced[titleIndexStart:titleIndexStop])+0.0001)), 4)
                 corelation2 = round(corelation2 / len(szukanaFraza), 4)
                 corelation = (corelation1 + corelation2) / 2
-                #print(respDataReduced[titleIndexStart:titleIndexStop] + ': ' + str(round(corelation*100, 2)) + '%')
+                # print(respDataReduced[titleIndexStart:titleIndexStop] + ': ' + str(round(corelation*100, 2)) + '%')
                 if corelation > 0.3 and respDataReduced[titleIndexStart:titleIndexStop] not in avaibleTargets:
                     avaibleTargets[respDataReduced[titleIndexStart:titleIndexStop]] = [corelation, titleIndexStart, removedIndexes]
 
@@ -239,15 +244,17 @@ def SzukanieInternet(movie_title):
         #exit()
 
     except Exception as e:
-        print(red + 'Nie znaleziono filmu: ' + end, szukanaFraza)
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        print(e)
-        print(exc_type, exc_tb.tb_lineno)
-        # exit()
+        print(red, 'Nie znaleziono filmu: ', end, szukanaFraza)
+        # exc_type, exc_obj, exc_tb = sys.exc_info()
+        # print(e)
+        # print(exc_type, exc_tb.tb_lineno)
+        movieDict = {'Tytuł': [szukanaFraza], 'Długość': [], 'Premiera': [], 'Gatunek': [],
+                     'Produkcja': [], 'Reżyseria': [], 'Obsada': [], 'Filmweb link': [], 'Opis': []}
+        print("Całość: " + str(round(time.time() - start, 2)) + " [s]")
+        print(200 * '+' + '\n')
+        return
     # print("Szukanie tytułu: " + str(round(time.time() - start, 2)) + " [s]")
 
-    global movieDict
-    movieDict = {}
     URLChanging(movieURL[0])
     respDataTemp = respData[60000:]
     if passit:
@@ -292,7 +299,7 @@ def savingIntoFile(wholeList):
                     if value != movieDict1[key][-1]:
                         saveFile.write(', ')
                 saveFile.write(';')
-            else:
+            elif movieDict1[key] != []:
                 if key == 'Długość':
                     saveFile.write(str(movieDict1[key][0] // 60) + ' godz. ' + str(movieDict1[key][0] % 60) +
                                    ' min.' + ';')
@@ -311,7 +318,7 @@ def savingIntoFile(wholeList):
 def main():
     Astart = time.time()
     SzukaniePoFolderach()
-    movieList = ["Most szpiegów", "Wilk", "Kiler"]
+    # movieList = ["Most szpiegów", "Wilk", "Kiler", "Piekło Pocztowe"]
     wholeList = []
     for film in movieList[0:]:
         global start
@@ -321,7 +328,7 @@ def main():
             wholeList.append(movieDict)
 
     savingIntoFile(wholeList)
-    print(bold, "Execution time: ", end, str(round(time.time() - Astart, 2)) + " [s].", bold, "Ilość filmów: ",
+    print(bold, "Execution time: ", end, str(round(time.time() - Astart, 2)) + " [s].", bold, "Movies amount: ",
           end, str(len(wholeList)))
 
 
