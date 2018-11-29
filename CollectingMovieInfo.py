@@ -3,19 +3,21 @@ import sys
 import time
 import urllib.request as ur
 import urllib.parse as up
+import PIL.ImageGrab
+from Connect_with_MySQL import Connect_with_SQL
 
 bold = '\033[1;34m' + '\033[1m'
 red = '\033[91m' + '\033[1m'
 end = '\033[0m'
+path = "E:\\Rafał\\Filmy"
 
 
-def SzukaniePoFolderach():
+def hdd_searching(path):
     # "F:\Studia\Python"
     curDir = os.getcwd()
-    if curDir != "E:\\Rafał\\Filmy":
-        os.chdir("E:\\Rafał\\Filmy")
+    if curDir != path:
+        os.chdir(path)
         curDir = os.getcwd()
-        print(curDir)
 
     global movieList
     movieList = os.listdir(curDir)
@@ -25,12 +27,11 @@ def SzukaniePoFolderach():
         movieList.remove('Thumbs.db')
     if 'desktop.ini' in movieList:
         movieList.remove('desktop.ini')
-    print(bold + 'Lista filmów:\n' + end, movieList, "\n")
-
+    # print(bold + 'Lista filmów:\n' + end, movieList, "\n")
     os.chdir("E:\\Studia\\Python")
 
 
-def SzukanieInternet(movie_title):
+def internet_searching(movie_title):
 
     global movieDict
     movieDict = {}
@@ -70,8 +71,9 @@ def SzukanieInternet(movie_title):
 
         # Getting movie data
         def tytul(self):
-            tytul = [respData[respData.index('<title>') + len('<title>'):
-                          respData.index('<title>') + len('<title>') + len(szukanaFraza)]]
+            # tytul = [respData[respData.index('<title>') + len('<title>'):
+            #             respData.index('<title>') + len('<title>') + len(szukanaFraza)]]
+            tytul = [respData[respData.index('<title>') + len('<title>'):respData.index('</title>', respData.index('<title>'))-17]]
             return tytul
 
         def rokProdukcji(self):
@@ -162,7 +164,8 @@ def SzukanieInternet(movie_title):
                 else:
                     print(bold + movieDict[key][0] + end)
 
-        print("Całość: " + str(round(time.time() - start, 2)) + " [s]")
+        # print("Całość: " + str(round(time.time() - start, 2)) + " [s]")
+        print('\n')
         print(200 * '+' + '\n')
 
     szukanaFraza = movie_title  # 'Most szpiegów'
@@ -270,7 +273,7 @@ def SzukanieInternet(movie_title):
         resultPrinting()
 
 
-def savingIntoFile(wholeList):
+def saving_into_file(wholeList):
     # Preparing file
     while True:
         try:
@@ -310,26 +313,41 @@ def savingIntoFile(wholeList):
     os.system("E:\Studia\Python\Output.csv")
 
 
+def screenshot_taking(film, desc_len):
+    try:
+        desc_len = len(desc_len[0])
+        time.sleep(0.3)
+        im = PIL.ImageGrab.grab(bbox=(80, 735, desc_len*7.85, 915))
+        os.chdir("E:\\Rafał\\Filmy\\" + film)
+        # os.chdir("C:\\Users\\Rafal\\Desktop")
+        im.save(film + ".png")
+    except:
+        desc_len = 0
+
 '''
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '''
 
 
 def main():
+    print("*** " + bold + "THE PROGRAM HAS STARTED" + end + " ***\n")
     Astart = time.time()
-    SzukaniePoFolderach()
-    # movieList = ["Most szpiegów", "Wilk", "Kiler", "Piekło Pocztowe"]
+    Connect_with_SQL()
+    hdd_searching(path)
+    movieList = ["Most szpiegów", "Wilk", "Kiler", "Piekło Pocztowe", "Szklana pułapka 4", "Wyprawa do Raju"]
     wholeList = []
     for film in movieList[0:]:
         global start
         start = time.time()
-        SzukanieInternet(film)
+        internet_searching(film)
         if len(wholeList) == 0 or movieDict != wholeList[-1]:
             wholeList.append(movieDict)
+        # screenshot_taking(film, movieDict['Opis'])
 
-    savingIntoFile(wholeList)
+    # saving_into_file(wholeList)
     print(bold, "Execution time: ", end, str(round(time.time() - Astart, 2)) + " [s].", bold, "Movies amount: ",
           end, str(len(wholeList)))
+    os.chdir("E:\\Studia\\Python")
 
 
 main()
