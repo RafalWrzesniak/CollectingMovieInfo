@@ -4,23 +4,24 @@ import time
 import urllib.request as ur
 import urllib.parse as up
 import PIL.ImageGrab
-from Connect_with_MySQL import Connect_with_SQL
+from Connect_with_MySQL import Connect_with_SQL, insert_into_db, chceck_in_db, movieTB
 
 bold = '\033[1;34m' + '\033[1m'
 red = '\033[91m' + '\033[1m'
 end = '\033[0m'
 path = "E:\\Rafał\\Filmy"
+# path = "Z:\\Filmy2"
 
 
 def hdd_searching(path):
     # "F:\Studia\Python"
-    curDir = os.getcwd()
-    if curDir != path:
+    cur_dir = os.getcwd()
+    if cur_dir != path:
         os.chdir(path)
-        curDir = os.getcwd()
+        cur_dir = os.getcwd()
 
     global movieList
-    movieList = os.listdir(curDir)
+    movieList = os.listdir(cur_dir)
     if '00DONE' in movieList:
         movieList.remove('00DONE')
     if 'Thumbs.db' in movieList:
@@ -31,7 +32,7 @@ def hdd_searching(path):
     os.chdir("E:\\Studia\\Python")
 
 
-def internet_searching(movie_title):
+def internet_searching(movie_title, cursor):
 
     global movieDict
     movieDict = {}
@@ -57,11 +58,16 @@ def internet_searching(movie_title):
                 respData = respData.replace('%C5%84', 'ń')
             if 'u0142' in respData:
                 respData = respData.replace('u0142', 'ł')
+            if '&ouml' in respData:
+                respData = respData.replace('&ouml', 'o')
+            if '&nbsp' in respData:
+                respData = respData.replace('&nbsp', ' ')
         except Exception as e:
-            print(red, 'Błąd podczas dekodowania nazwy filmu: ', end, movie_title)
-            print("Całość: " + str(round(time.time() - start, 2)) + " [s]")
-            print(200 * '+' + '\n')
+            print(red + 'Failed to decode movie name: ' + end + movie_title)
             passit = False
+            # print(e)
+            # print("Całość: " + str(round(time.time() - start, 2)) + " [s]")
+            # print(200 * '+' + '\n')
 
     class FilmKlasa:
 
@@ -137,14 +143,19 @@ def internet_searching(movie_title):
                 cast.append(respDataTemp[actorStart:actorStop])
                 cast[actor] = cast[actor].replace('.', ' ')
                 cast[actor] = cast[actor].replace('+', ' ')
-                actorStart = respDataTemp.index('person/', actorStop) + len('person/')
-                actorStop = respDataTemp.index('",', actorStart)
+                try:
+                    actorStart = respDataTemp.index('person/', actorStop) + len('person/')
+                    actorStop = respDataTemp.index('",', actorStart)
+                except:
+                    actorStart = 0
+                    actorStop = 1
                 if '-' in cast[actor]:
                     cast[actor] = cast[actor][0:cast[actor].index('-')]
             return cast
 
     # Printing
     def resultPrinting():
+        print("\n")
         for key in movieDict:
             print(key + ':', end=" ")
             if len(movieDict[key]) > 1:
@@ -155,8 +166,7 @@ def internet_searching(movie_title):
                         print(bold + value + end)
             else:
                 if key == 'Długość':
-                    print(bold + str(movieDict[key][0] // 60) + ' godz. ' + str(
-                        movieDict[key][0] % 60) + ' min.' + end)
+                    print(bold + str(movieDict[key][0] // 60) + ' godz. ' + str(movieDict[key][0] % 60) + ' min.' + end)
                 elif key == 'Filmweb link':
                     print(movieDict[key][0])
                 elif key == 'Opis':
@@ -165,8 +175,8 @@ def internet_searching(movie_title):
                     print(bold + movieDict[key][0] + end)
 
         # print("Całość: " + str(round(time.time() - start, 2)) + " [s]")
-        print('\n')
-        print(200 * '+' + '\n')
+        # print('\n')
+        # print(200 * '+' + '\n')
 
     szukanaFraza = movie_title  # 'Most szpiegów'
     if ' -' in szukanaFraza:
@@ -234,43 +244,57 @@ def internet_searching(movie_title):
                 continueSearching = False
 
         tempScore = 0
-        #print(avaibleTargets)
+        # print(avaibleTargets)
         for posibl in avaibleTargets:
             if avaibleTargets[posibl][0] > tempScore:
                 titleIndexStart = avaibleTargets[posibl][1] + avaibleTargets[posibl][2]
                 tempScore = avaibleTargets[posibl][0]
         movieIndexStart = respDataTemp.index('href="', titleIndexStart - 100) + len('href="')
         movieIndexStop = respDataTemp.index('"><h3', movieIndexStart)
-        #print(respData[movieIndexStart:movieIndexStop])
+        # print(respData[movieIndexStart:movieIndexStop])
         movieURL = ['http://www.filmweb.pl' + respDataTemp[movieIndexStart:movieIndexStop]]
         castURL = movieURL[0] + '/cast/actors'
-        #exit()
 
     except Exception as e:
-        print(red, 'Nie znaleziono filmu: ', end, szukanaFraza)
+        print(red + 'Failed to find: ' + end + szukanaFraza)
         # exc_type, exc_obj, exc_tb = sys.exc_info()
         # print(e)
         # print(exc_type, exc_tb.tb_lineno)
         movieDict = {'Tytuł': [szukanaFraza], 'Długość': [], 'Premiera': [], 'Gatunek': [],
                      'Produkcja': [], 'Reżyseria': [], 'Obsada': [], 'Filmweb link': [], 'Opis': []}
-        print("Całość: " + str(round(time.time() - start, 2)) + " [s]")
-        print(200 * '+' + '\n')
-        return
+        # print("Całość: " + str(round(time.time() - start, 2)) + " [s]")
+        # print(200 * '+' + '\n')
+        return False, 'n_in_db'
     # print("Szukanie tytułu: " + str(round(time.time() - start, 2)) + " [s]")
 
+    if chceck_in_db(movieTB, 'filmweb_link', movieURL[0], cursor):
+        return False, 'in_db'
     URLChanging(movieURL[0])
     respDataTemp = respData[60000:]
     if passit:
-        film = FilmKlasa()
-        film.Gatunek_Produkcja_Rezyseria()
+        try:
+            film = FilmKlasa()
+            film.Gatunek_Produkcja_Rezyseria()
+        except Exception as e:
+            return False, 'n_in_db'
         # Creating final dictionary
-        movieDict = {'Tytuł': film.tytul(), 'Długość': film.czasTrwania(), 'Premiera': film.rokProdukcji(), 'Gatunek': film.gatunek,
-                     'Produkcja': film.kraj, 'Reżyseria': film.rezyser, 'Obsada': film.cast(), 'Filmweb link': movieURL,
-                     'Opis': film.movieDesc()}
+        movieDict = {'Tytuł': film.tytul(), 'Długość': film.czasTrwania(), 'Premiera': film.rokProdukcji(),
+                     'Gatunek': film.gatunek, 'Produkcja': film.kraj, 'Reżyseria': film.rezyser, 'Obsada': film.cast(),
+                     'Filmweb link': movieURL, 'Opis': film.movieDesc()}
         for name in movieDict:
             if movieDict[name] == []:
                 movieDict[name] = ['-']
+        if '"' in movieDict['Tytuł'][0]:
+            movieDict['Tytuł'][0] = movieDict['Tytuł'][0].replace('"', "'")
+        if '"' in movieDict['Opis'][0]:
+            movieDict['Opis'][0] = movieDict['Opis'][0].replace('"', "'")
         resultPrinting()
+        return True, 'n_in_db'
+
+    else:
+        movieDict = {'Tytuł': [szukanaFraza], 'Długość': [], 'Premiera': [], 'Gatunek': [],
+                     'Produkcja': [], 'Reżyseria': [], 'Obsada': [], 'Filmweb link': [], 'Opis': []}
+        return False, 'n_in_db'
 
 
 def saving_into_file(wholeList):
@@ -316,13 +340,16 @@ def saving_into_file(wholeList):
 def screenshot_taking(film, desc_len):
     try:
         desc_len = len(desc_len[0])
-        time.sleep(0.3)
-        im = PIL.ImageGrab.grab(bbox=(80, 735, desc_len*7.85, 915))
-        os.chdir("E:\\Rafał\\Filmy\\" + film)
+        time.sleep(0.33)
+        im = PIL.ImageGrab.grab(bbox=(80, 800, desc_len*7.85, 990))
+        os.chdir(path + "\\" + film)
         # os.chdir("C:\\Users\\Rafal\\Desktop")
         im.save(film + ".png")
-    except:
-        desc_len = 0
+    except Exception as e:
+        print("Exception in screentshot taking function: " + str(e))
+        pass
+
+
 
 '''
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -331,23 +358,49 @@ def screenshot_taking(film, desc_len):
 
 def main():
     print("*** " + bold + "THE PROGRAM HAS STARTED" + end + " ***\n")
+    err_file = open('Output_err.txt', 'w')
+    err_file.close()
     Astart = time.time()
-    Connect_with_SQL()
+    mydb = Connect_with_SQL()
+    cursor = mydb.cursor()
     hdd_searching(path)
-    movieList = ["Most szpiegów", "Wilk", "Kiler", "Piekło Pocztowe", "Szklana pułapka 4", "Wyprawa do Raju"]
+    # movieList = ["Piekło Pocztowe", "Most szpiegów", "Hudson Hawk", "Szklana pułapka 4", "Kiler", "Wilk"]
+    # movieList = ["Millennium 3 - Zamek z piasku, który runął"]
     wholeList = []
     for film in movieList[0:]:
         global start
         start = time.time()
-        internet_searching(film)
-        if len(wholeList) == 0 or movieDict != wholeList[-1]:
-            wholeList.append(movieDict)
-        # screenshot_taking(film, movieDict['Opis'])
+        if not chceck_in_db(movieTB, 'title', film, cursor):
+            res_internet_searching = internet_searching(film, cursor)
+            if res_internet_searching[0]:
+                if len(wholeList) == 0 or movieDict != wholeList[-1]:
+                    wholeList.append(movieDict)
+                screenshot_taking(film, movieDict['Opis'])
+                insert_into_db(movieDict, cursor, mydb)
+                print(200 * '+')
+            elif res_internet_searching[1] == 'in_db':
+                print('Movie ' + bold + film + end + ' already exists in DataBase')
+            else:
+                err_file = open('Output_err.txt', 'a')
+                err_file.write(film + '\n')
+                err_file.close()
+        else:
+            print('Movie ' + bold + film + end + ' already exists in DataBase')
 
     # saving_into_file(wholeList)
-    print(bold, "Execution time: ", end, str(round(time.time() - Astart, 2)) + " [s].", bold, "Movies amount: ",
-          end, str(len(wholeList)))
+    print(bold + "\nExecution time: " + end + str(round(time.time() - Astart, 2)) + " [s].", bold, "New movies amount: "
+          + end + str(len(wholeList)))
     os.chdir("E:\\Studia\\Python")
 
-
 main()
+#
+# def foo(x, y):
+#     if x > 0:
+#         return True, x+y
+#     else:
+#         return x+y
+#
+#
+# print(foo(-4, 2))
+
+
