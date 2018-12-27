@@ -62,6 +62,8 @@ def internet_searching(movie_title, cursor):
                 respData = respData.replace('&ouml', 'o')
             if '&nbsp' in respData:
                 respData = respData.replace('&nbsp', ' ')
+            if '&ndash ' in respData:
+                respData = respData.replace('&ndash ', '- ')
         except Exception as e:
             print(red + 'Failed to decode movie name: ' + end + movie_title)
             passit = False
@@ -97,15 +99,15 @@ def internet_searching(movie_title, cursor):
 
         def Gatunek_Produkcja_Rezyseria(self):
             movieTempDict = {'Gatunek': [self.gatunek, 'gatunek'], 'Produkcja': [self.kraj, 'countries'],
-                     'Reżyseria': [self.rezyser, 'director']}
+                             'Reżyseria': [self.rezyser, 'director']}
 
             def DataSearching(keyword, outputList):
                 searchBegin = respDataTemp.index(keyword)
                 while searchBegin < respDataTemp.index('</ul>', respDataTemp.index(keyword)):
                     gatIndexStop = respDataTemp.index('</a>', searchBegin)
                     gatIndexStart = respDataTemp.index('>', gatIndexStop - 35) + 1
-                    if '.' not in respDataTemp[gatIndexStart:gatIndexStop] and '<' not in respDataTemp[gatIndexStart:gatIndexStop] \
-                            and ',' not in respDataTemp[gatIndexStart:gatIndexStop] and respDataTemp[gatIndexStart:gatIndexStop].count(' ') < 2 and len(respDataTemp[gatIndexStart:gatIndexStop]) > 0:
+                    if '<' not in respDataTemp[gatIndexStart:gatIndexStop] and ',' not in respDataTemp[gatIndexStart:
+                    gatIndexStop] and respDataTemp[gatIndexStart:gatIndexStop].count(' ') < 2 and len(respDataTemp[gatIndexStart:gatIndexStop]) > 0:
                         outputList.append(respDataTemp[gatIndexStart:gatIndexStop])
                     searchBegin = gatIndexStop + len('</a></li></ul>')
 
@@ -341,7 +343,7 @@ def screenshot_taking(film, desc_len):
     try:
         desc_len = len(desc_len[0])
         time.sleep(0.33)
-        im = PIL.ImageGrab.grab(bbox=(80, 800, desc_len*7.85, 990))
+        im = PIL.ImageGrab.grab(bbox=(80, 800, desc_len*7.87, 990))
         os.chdir(path + "\\" + film)
         # os.chdir("C:\\Users\\Rafal\\Desktop")
         im.save(film + ".png")
@@ -365,7 +367,7 @@ def main():
     cursor = mydb.cursor()
     hdd_searching(path)
     # movieList = ["Piekło Pocztowe", "Most szpiegów", "Hudson Hawk", "Szklana pułapka 4", "Kiler", "Wilk"]
-    # movieList = ["Millennium 3 - Zamek z piasku, który runął"]
+    # movieList = ["Niemożliwe"]
     wholeList = []
     for film in movieList[0:]:
         global start
@@ -392,15 +394,6 @@ def main():
           + end + str(len(wholeList)))
     os.chdir("E:\\Studia\\Python")
 
-main()
-#
-# def foo(x, y):
-#     if x > 0:
-#         return True, x+y
-#     else:
-#         return x+y
-#
-#
-# print(foo(-4, 2))
 
+main()
 
