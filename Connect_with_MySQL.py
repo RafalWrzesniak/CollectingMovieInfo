@@ -15,7 +15,7 @@ prodBridge = 'prodBridge'
 def Connect_with_SQL():
     connect_with_server()
     if connect_with_server:
-        sql.connect(host="localhost", user="Windxore", passwd="maslo")
+        sql.connect(host="*******", user="*******", passwd="*******")
         print('Connected with server')
     else:
         print('Failed to connect with database')
@@ -28,23 +28,23 @@ def Connect_with_SQL():
 
 def connect_with_server():
     try:
-        sql.connect(host="localhost", user="Windxore", passwd="maslo")
+        sql.connect(host="*******", user="*******", passwd="*******")
         return True
     except:
         return False
 
 
 def db_connecting():
-    mydb = sql.connect(host="localhost", user="Windxore", passwd="maslo")
+    mydb = sql.connect(host="*******", user="*******", passwd="*******")
     cursor = mydb.cursor()
     cursor.execute("SHOW DATABASES")
     for db in cursor:
         if db == (dbname,):
-            mydb = sql.connect(host="localhost", user="Windxore", passwd="maslo", database=dbname)
+            mydb = sql.connect(host="*******", user="*******", passwd="*******", database=dbname)
             print('Connected with database ' + bold + dbname + end)
             return mydb
     cursor.execute("CREATE DATABASE " + dbname)
-    mydb = sql.connect(host="localhost", user="Windxore", passwd="maslo", database=dbname)
+    mydb = sql.connect(host="*******", user="*******", passwd="*******", database=dbname)
     print('Databese ' + bold + dbname + end + ' created and connected with')
     return mydb
 
